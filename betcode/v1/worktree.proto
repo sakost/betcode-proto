@@ -31,8 +31,8 @@ service WorktreeService {
 message CreateWorktreeRequest {
   // Human-readable name (e.g. "feat-login"). Used as directory name.
   string name = 1;
-  // Path to the git repository root.
-  string repo_path = 2;
+  // ID of the registered git repository.
+  string repo_id = 2;
   // Branch name to create (passed to `git worktree add -b`).
   string branch = 3;
   // Optional shell command to run after worktree creation (e.g. "npm install").
@@ -44,8 +44,8 @@ message RemoveWorktreeRequest {
 }
 
 message ListWorktreesRequest {
-  // Filter by repo path. Empty string returns all.
-  string repo_path = 1;
+  // Filter by repo ID. Empty string returns all.
+  string repo_id = 1;
 }
 
 message GetWorktreeRequest {
@@ -70,7 +70,7 @@ message WorktreeDetail {
   string name = 2;
   string path = 3;
   string branch = 4;
-  string repo_path = 5;
+  string repo_id = 5;
   string setup_script = 6;
   bool exists_on_disk = 7;
   uint32 session_count = 8;

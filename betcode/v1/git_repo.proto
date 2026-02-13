@@ -1,0 +1,108 @@
+// BetCode Git Repository Service
+// Repository registration and configuration management.
+//
+// Version: v1
+
+syntax = "proto3";
+
+package betcode.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// GitRepoService manages registered git repositories and their configuration.
+service GitRepoService {
+  // Register a new git repository.
+  rpc RegisterRepo(RegisterRepoRequest) returns (GitRepoDetail);
+
+  // Remove a registered repository.
+  rpc UnregisterRepo(UnregisterRepoRequest) returns (UnregisterRepoResponse);
+
+  // List all registered repositories.
+  rpc ListRepos(ListReposRequest) returns (ListReposResponse);
+
+  // Get a single repository by ID.
+  rpc GetRepo(GetRepoRequest) returns (GitRepoDetail);
+
+  // Update repository configuration.
+  rpc UpdateRepo(UpdateRepoRequest) returns (GitRepoDetail);
+
+  // Scan a directory for git repositories and register them.
+  rpc ScanRepos(ScanReposRequest) returns (ListReposResponse);
+}
+
+// =============================================================================
+// Requests
+// =============================================================================
+
+message RegisterRepoRequest {
+  // Absolute path to the git repository root.
+  string repo_path = 1;
+  // Display name (optional; defaults to last path component).
+  string name = 2;
+  // Worktree storage mode: "global", "local", or "custom".
+  string worktree_mode = 3;
+  // Subfolder name for local mode (default: ".worktree").
+  string local_subfolder = 4;
+  // Absolute path for custom mode.
+  string custom_path = 5;
+  // Default setup script for new worktrees.
+  string setup_script = 6;
+  // Whether to auto-add local subfolder to .gitignore (default: true).
+  bool auto_gitignore = 7;
+}
+
+message UnregisterRepoRequest {
+  string id = 1;
+  // If true, also remove all worktrees on disk.
+  bool remove_worktrees = 2;
+}
+
+message ListReposRequest {}
+
+message GetRepoRequest {
+  string id = 1;
+}
+
+message UpdateRepoRequest {
+  string id = 1;
+  string name = 2;
+  string worktree_mode = 3;
+  string local_subfolder = 4;
+  string custom_path = 5;
+  string setup_script = 6;
+  bool auto_gitignore = 7;
+}
+
+message ScanReposRequest {
+  // Directory to scan for git repositories.
+  string scan_path = 1;
+  // Maximum depth to scan (default: 2).
+  uint32 max_depth = 2;
+}
+
+// =============================================================================
+// Responses
+// =============================================================================
+
+message UnregisterRepoResponse {
+  bool removed = 1;
+  uint32 worktrees_removed = 2;
+}
+
+message ListReposResponse {
+  repeated GitRepoDetail repos = 1;
+}
+
+message GitRepoDetail {
+  string id = 1;
+  string name = 2;
+  string repo_path = 3;
+  string worktree_mode = 4;
+  string local_subfolder = 5;
+  string custom_path = 6;
+  string setup_script = 7;
+  bool auto_gitignore = 8;
+  uint32 worktree_count = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp last_active = 11;
+}
