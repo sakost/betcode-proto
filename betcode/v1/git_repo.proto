@@ -9,6 +9,18 @@ package betcode.v1;
 
 import "google/protobuf/timestamp.proto";
 
+// Worktree storage mode for a repository.
+enum WorktreeMode {
+  // Default / unset — server treats as GLOBAL.
+  WORKTREE_MODE_UNSPECIFIED = 0;
+  // Worktrees stored in a global shared directory.
+  WORKTREE_MODE_GLOBAL = 1;
+  // Worktrees stored inside the repository directory.
+  WORKTREE_MODE_LOCAL = 2;
+  // Worktrees stored in a user-specified custom path.
+  WORKTREE_MODE_CUSTOM = 3;
+}
+
 // GitRepoService manages registered git repositories and their configuration.
 service GitRepoService {
   // Register a new git repository.
@@ -39,8 +51,8 @@ message RegisterRepoRequest {
   string repo_path = 1;
   // Display name (optional; defaults to last path component).
   string name = 2;
-  // Worktree storage mode: "global", "local", or "custom".
-  string worktree_mode = 3;
+  // Worktree storage mode (default: GLOBAL).
+  WorktreeMode worktree_mode = 3;
   // Subfolder name for local mode (default: ".worktree").
   string local_subfolder = 4;
   // Absolute path for custom mode.
@@ -57,7 +69,12 @@ message UnregisterRepoRequest {
   bool remove_worktrees = 2;
 }
 
-message ListReposRequest {}
+message ListReposRequest {
+  // Maximum number of results to return (0 = no limit).
+  uint32 limit = 1;
+  // Number of results to skip for pagination.
+  uint32 offset = 2;
+}
 
 message GetRepoRequest {
   string id = 1;
@@ -65,12 +82,12 @@ message GetRepoRequest {
 
 message UpdateRepoRequest {
   string id = 1;
-  string name = 2;
-  string worktree_mode = 3;
-  string local_subfolder = 4;
-  string custom_path = 5;
-  string setup_script = 6;
-  bool auto_gitignore = 7;
+  optional string name = 2;
+  optional WorktreeMode worktree_mode = 3;
+  optional string local_subfolder = 4;
+  optional string custom_path = 5;
+  optional string setup_script = 6;
+  optional bool auto_gitignore = 7;
 }
 
 message ScanReposRequest {
@@ -91,13 +108,15 @@ message UnregisterRepoResponse {
 
 message ListReposResponse {
   repeated GitRepoDetail repos = 1;
+  // Total number of repositories (before pagination).
+  uint32 total_count = 2;
 }
 
 message GitRepoDetail {
   string id = 1;
   string name = 2;
   string repo_path = 3;
-  string worktree_mode = 4;
+  WorktreeMode worktree_mode = 4;
   string local_subfolder = 5;
   string custom_path = 6;
   string setup_script = 7;
