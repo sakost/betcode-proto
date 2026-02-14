@@ -107,6 +107,7 @@ enum TunnelErrorCode {
   TUNNEL_ERROR_CODE_NOT_FOUND = 3;
   TUNNEL_ERROR_CODE_UNAUTHORIZED = 4;
   TUNNEL_ERROR_CODE_UNAVAILABLE = 5;
+  TUNNEL_ERROR_CODE_INVALID_ARGUMENT = 6;
 }
 
 // =============================================================================
