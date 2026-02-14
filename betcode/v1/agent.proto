@@ -35,6 +35,18 @@ service AgentService {
 
   // Exchange ephemeral keys for E2E encryption with a daemon.
   rpc ExchangeKeys(KeyExchangeRequest) returns (KeyExchangeResponse);
+
+  // List session-scoped permission grants for a session.
+  rpc ListSessionGrants(ListSessionGrantsRequest) returns (ListSessionGrantsResponse);
+
+  // Clear session-scoped permission grants for a session.
+  rpc ClearSessionGrants(ClearSessionGrantsRequest) returns (ClearSessionGrantsResponse);
+
+  // Set or update a session-scoped permission grant.
+  rpc SetSessionGrant(SetSessionGrantRequest) returns (SetSessionGrantResponse);
+
+  // Rename a session.
+  rpc RenameSession(RenameSessionRequest) returns (RenameSessionResponse);
 }
 
 // =============================================================================
@@ -68,6 +80,9 @@ message StartConversation {
 message UserMessage {
   string content = 1;
   repeated Attachment attachments = 2;
+  // Optional target agent ID. When set, the message is routed to a
+  // specific agent instance instead of the default session agent.
+  string agent_id = 3;
 }
 
 // PermissionResponse is the user's decision on a permission request.
@@ -251,6 +266,7 @@ message SessionSummary {
   google.protobuf.Timestamp created_at = 10;
   google.protobuf.Timestamp updated_at = 11;
   string last_message_preview = 12;
+  string name = 13;
 }
 
 message ResumeSessionRequest {
@@ -284,3 +300,47 @@ message InputLockResponse {
   bool granted = 1;
   string previous_holder = 2;
 }
+
+// =============================================================================
+// Session Grant Management
+// =============================================================================
+
+message SessionGrantEntry {
+  string tool_name = 1;
+  bool granted = 2;
+}
+
+message ListSessionGrantsRequest {
+  string session_id = 1;
+}
+
+message ListSessionGrantsResponse {
+  repeated SessionGrantEntry grants = 1;
+}
+
+message ClearSessionGrantsRequest {
+  string session_id = 1;
+  // Optional: clear only this tool's grant. Empty = clear all.
+  string tool_name = 2;
+}
+
+message ClearSessionGrantsResponse {}
+
+message SetSessionGrantRequest {
+  string session_id = 1;
+  string tool_name = 2;
+  bool granted = 3;
+}
+
+message SetSessionGrantResponse {}
+
+// =============================================================================
+// Session Rename
+// =============================================================================
+
+message RenameSessionRequest {
+  string session_id = 1;
+  string name = 2;
+}
+
+message RenameSessionResponse {}
