@@ -1,0 +1,49 @@
+// BetCode Notification Service
+// Push notification device registration for mobile clients.
+//
+// Version: v1
+
+syntax = "proto3";
+
+package betcode.v1;
+
+// NotificationService manages device registrations for push notifications.
+service NotificationService {
+  // Register a device token for push notifications.
+  rpc RegisterDevice(RegisterDeviceRequest) returns (RegisterDeviceResponse);
+
+  // Unregister a device token to stop receiving push notifications.
+  rpc UnregisterDevice(UnregisterDeviceRequest) returns (UnregisterDeviceResponse);
+}
+
+// =============================================================================
+// Device Registration
+// =============================================================================
+
+message RegisterDeviceRequest {
+  string device_token = 1;
+  DevicePlatform platform = 2;
+  string user_id = 3;
+}
+
+enum DevicePlatform {
+  DEVICE_PLATFORM_UNSPECIFIED = 0;
+  DEVICE_PLATFORM_ANDROID = 1;
+  DEVICE_PLATFORM_IOS = 2;
+}
+
+message RegisterDeviceResponse {
+  bool success = 1;
+}
+
+// =============================================================================
+// Device Unregistration
+// =============================================================================
+
+message UnregisterDeviceRequest {
+  string device_token = 1;
+}
+
+message UnregisterDeviceResponse {
+  bool success = 1;
+}

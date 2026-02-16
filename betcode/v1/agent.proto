@@ -47,6 +47,9 @@ service AgentService {
 
   // Rename a session.
   rpc RenameSession(RenameSessionRequest) returns (RenameSessionResponse);
+
+  // Delete a session and all its messages.
+  rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse);
 }
 
 // =============================================================================
@@ -344,3 +347,15 @@ message RenameSessionRequest {
 }
 
 message RenameSessionResponse {}
+
+// =============================================================================
+// Session Delete
+// =============================================================================
+
+message DeleteSessionRequest {
+  string session_id = 1;
+}
+
+message DeleteSessionResponse {
+  bool deleted = 1;
+}

@@ -1,0 +1,305 @@
+// BetCode Subagent Orchestration Service
+// Daemon-orchestrated subagent management and DAG-based orchestration.
+//
+// Version: v1
+// See: docs/architecture/SUBAGENTS.md
+
+syntax = "proto3";
+
+package betcode.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// SubagentService provides daemon-orchestrated subagent management.
+// Unlike Level 1 (Claude-internal Task tool), Level 2 subagents are
+// independent Claude Code subprocesses managed by the daemon.
+service SubagentService {
+  // Spawn a new subagent subprocess under a parent session.
+  rpc SpawnSubagent(SpawnSubagentRequest) returns (SpawnSubagentResponse);
+
+  // Watch a subagent's event stream.
+  rpc WatchSubagent(WatchSubagentRequest) returns (stream SubagentEvent);
+
+  // Send input to a running subagent.
+  rpc SendToSubagent(SendToSubagentRequest) returns (SendToSubagentResponse);
+
+  // Cancel a running subagent.
+  rpc CancelSubagent(CancelSubagentRequest) returns (CancelSubagentResponse);
+
+  // List subagents for a parent session.
+  rpc ListSubagents(ListSubagentsRequest) returns (ListSubagentsResponse);
+
+  // Create a multi-step orchestration (parallel, sequential, or DAG).
+  rpc CreateOrchestration(CreateOrchestrationRequest) returns (CreateOrchestrationResponse);
+
+  // Watch orchestration progress events.
+  rpc WatchOrchestration(WatchOrchestrationRequest) returns (stream OrchestrationEvent);
+
+  // Revoke auto-approve permissions on a running subagent.
+  rpc RevokeAutoApprove(RevokeAutoApproveRequest) returns (RevokeAutoApproveResponse);
+}
+
+// =============================================================================
+// Subagent Messages
+// =============================================================================
+
+// SpawnSubagentRequest spawns a new Claude subprocess as a subagent.
+message SpawnSubagentRequest {
+  string parent_session_id = 1;
+  string prompt = 2;
+  string model = 3;
+  string working_directory = 4;
+  repeated string allowed_tools = 5;
+  int32 max_turns = 6;
+  map<string, string> env = 7;
+  string name = 8;
+  bool auto_approve = 9;
+}
+
+// SpawnSubagentResponse returns the IDs of the spawned subagent.
+message SpawnSubagentResponse {
+  string subagent_id = 1;
+  string session_id = 2;
+}
+
+// WatchSubagentRequest subscribes to a subagent's event stream.
+message WatchSubagentRequest {
+  string subagent_id = 1;
+  uint64 from_sequence = 2;
+}
+
+// SendToSubagentRequest sends input to a running subagent.
+message SendToSubagentRequest {
+  string subagent_id = 1;
+  string content = 2;
+}
+
+// SendToSubagentResponse acknowledges input delivery.
+message SendToSubagentResponse {
+  bool delivered = 1;
+}
+
+// CancelSubagentRequest cancels a running subagent.
+message CancelSubagentRequest {
+  string subagent_id = 1;
+  string reason = 2;
+  bool force = 3;
+  bool cleanup_worktree = 4;
+}
+
+// CancelSubagentResponse returns the result of cancellation.
+message CancelSubagentResponse {
+  bool cancelled = 1;
+  string final_status = 2;
+  int32 tool_calls_executed = 3;
+  int32 tool_calls_auto_approved = 4;
+}
+
+// ListSubagentsRequest lists subagents under a parent session.
+message ListSubagentsRequest {
+  string parent_session_id = 1;
+  string status_filter = 2;
+}
+
+// ListSubagentsResponse returns matching subagents.
+message ListSubagentsResponse {
+  repeated SubagentInfo subagents = 1;
+}
+
+// SubagentInfo describes a subagent's current state.
+message SubagentInfo {
+  string id = 1;
+  string parent_session_id = 2;
+  string session_id = 3;
+  string name = 4;
+  string prompt = 5;
+  string model = 6;
+  string working_directory = 7;
+  SubagentStatus status = 8;
+  bool auto_approve = 9;
+  int32 max_turns = 10;
+  repeated string allowed_tools = 11;
+  string result_summary = 12;
+  google.protobuf.Timestamp created_at = 13;
+  google.protobuf.Timestamp completed_at = 14;
+}
+
+// SubagentStatus represents a subagent's lifecycle state.
+enum SubagentStatus {
+  SUBAGENT_STATUS_UNSPECIFIED = 0;
+  SUBAGENT_STATUS_PENDING = 1;
+  SUBAGENT_STATUS_RUNNING = 2;
+  SUBAGENT_STATUS_COMPLETED = 3;
+  SUBAGENT_STATUS_FAILED = 4;
+  SUBAGENT_STATUS_CANCELLED = 5;
+}
+
+// SubagentEvent wraps all subagent-to-client event types.
+message SubagentEvent {
+  string subagent_id = 1;
+  google.protobuf.Timestamp timestamp = 2;
+
+  oneof event {
+    SubagentStarted started = 3;
+    SubagentOutput output = 4;
+    SubagentToolUse tool_use = 5;
+    SubagentPermissionRequest permission_request = 6;
+    SubagentCompleted completed = 7;
+    SubagentFailed failed = 8;
+    SubagentCancelled cancelled = 9;
+  }
+}
+
+// SubagentStarted indicates the subagent process has started.
+message SubagentStarted {
+  string session_id = 1;
+  string model = 2;
+}
+
+// SubagentOutput streams incremental text output from the subagent.
+message SubagentOutput {
+  string text = 1;
+  bool is_complete = 2;
+}
+
+// SubagentToolUse indicates the subagent is invoking a tool.
+message SubagentToolUse {
+  string tool_id = 1;
+  string tool_name = 2;
+  string description = 3;
+}
+
+// SubagentPermissionRequest forwards a permission request from the subagent.
+message SubagentPermissionRequest {
+  string request_id = 1;
+  string tool_name = 2;
+  string description = 3;
+}
+
+// SubagentCompleted indicates the subagent finished successfully.
+message SubagentCompleted {
+  int32 exit_code = 1;
+  string result_summary = 2;
+}
+
+// SubagentFailed indicates the subagent exited with an error.
+message SubagentFailed {
+  int32 exit_code = 1;
+  string error_message = 2;
+}
+
+// SubagentCancelled indicates the subagent was cancelled.
+message SubagentCancelled {
+  string reason = 1;
+}
+
+// =============================================================================
+// Auto-Approve Revocation
+// =============================================================================
+
+// RevokeAutoApproveRequest revokes auto-approve on a running subagent.
+message RevokeAutoApproveRequest {
+  string subagent_id = 1;
+  string reason = 2;
+  bool terminate_if_pending = 3;
+}
+
+// RevokeAutoApproveResponse returns the result of revocation.
+message RevokeAutoApproveResponse {
+  bool revoked = 1;
+  int32 pending_tool_calls = 2;
+  string subagent_status = 3;
+}
+
+// =============================================================================
+// Orchestration Messages
+// =============================================================================
+
+// OrchestrationStrategy defines how orchestration steps are executed.
+enum OrchestrationStrategy {
+  ORCHESTRATION_STRATEGY_UNSPECIFIED = 0;
+  ORCHESTRATION_STRATEGY_PARALLEL = 1;
+  ORCHESTRATION_STRATEGY_SEQUENTIAL = 2;
+  ORCHESTRATION_STRATEGY_DAG = 3;
+}
+
+// CreateOrchestrationRequest creates a multi-step orchestration plan.
+message CreateOrchestrationRequest {
+  string parent_session_id = 1;
+  repeated OrchestrationStep steps = 2;
+  OrchestrationStrategy strategy = 3;
+}
+
+// CreateOrchestrationResponse returns the orchestration ID.
+message CreateOrchestrationResponse {
+  string orchestration_id = 1;
+  int32 total_steps = 2;
+}
+
+// OrchestrationStep defines a single step in an orchestration plan.
+message OrchestrationStep {
+  string id = 1;
+  string name = 2;
+  string prompt = 3;
+  string model = 4;
+  string working_directory = 5;
+  repeated string allowed_tools = 6;
+  repeated string depends_on = 7;
+  int32 max_turns = 8;
+  bool auto_approve = 9;
+}
+
+// WatchOrchestrationRequest subscribes to orchestration progress events.
+message WatchOrchestrationRequest {
+  string orchestration_id = 1;
+}
+
+// OrchestrationEvent wraps orchestration progress events.
+message OrchestrationEvent {
+  string orchestration_id = 1;
+  google.protobuf.Timestamp timestamp = 2;
+
+  oneof event {
+    StepStarted step_started = 3;
+    StepCompleted step_completed = 4;
+    StepFailed step_failed = 5;
+    OrchestrationCompleted completed = 6;
+    OrchestrationFailed failed = 7;
+  }
+}
+
+// StepStarted indicates an orchestration step has begun.
+message StepStarted {
+  string step_id = 1;
+  string subagent_id = 2;
+  string name = 3;
+}
+
+// StepCompleted indicates a step finished successfully.
+message StepCompleted {
+  string step_id = 1;
+  string result_summary = 2;
+  int32 completed_count = 3;
+  int32 total_count = 4;
+}
+
+// StepFailed indicates a step failed.
+message StepFailed {
+  string step_id = 1;
+  string error_message = 2;
+  repeated string blocked_steps = 3;
+}
+
+// OrchestrationCompleted indicates all steps finished.
+message OrchestrationCompleted {
+  int32 total_steps = 1;
+  int32 succeeded = 2;
+  int32 failed = 3;
+}
+
+// OrchestrationFailed indicates the orchestration could not complete.
+message OrchestrationFailed {
+  string error_message = 1;
+  int32 completed_steps = 2;
+  int32 failed_steps = 3;
+}
