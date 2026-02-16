@@ -43,6 +43,8 @@ enum CommandCategory {
   COMMAND_CATEGORY_SERVICE = 1;
   COMMAND_CATEGORY_CLAUDE_CODE = 2;
   COMMAND_CATEGORY_PLUGIN = 3;
+  COMMAND_CATEGORY_SKILL = 4;
+  COMMAND_CATEGORY_MCP = 5;
 }
 
 // ExecutionMode describes how a command is executed.
@@ -61,6 +63,8 @@ message CommandEntry {
   ExecutionMode execution_mode = 4;
   string source = 5;
   optional string args_schema = 6;
+  string group = 7;
+  string display_name = 8;
 }
 
 // =============================================================================
