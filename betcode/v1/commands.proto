@@ -152,7 +152,9 @@ message PluginInfo {
 // Request/Response: Registry
 // =============================================================================
 
-message GetCommandRegistryRequest {}
+message GetCommandRegistryRequest {
+  string session_id = 1;
+}
 
 message GetCommandRegistryResponse {
   repeated CommandEntry commands = 1;
@@ -191,6 +193,7 @@ message ListPathResponse {
 message ExecuteServiceCommandRequest {
   string command = 1;
   repeated string args = 2;
+  string session_id = 3;
 }
 
 // Response is the streaming ServiceCommandOutput defined above.
