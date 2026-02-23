@@ -40,6 +40,18 @@ service GitRepoService {
 
   // Scan a directory for git repositories and register them.
   rpc ScanRepos(ScanReposRequest) returns (ListReposResponse);
+
+  // List branches in a registered repository.
+  rpc ListBranches(ListBranchesRequest) returns (ListBranchesResponse);
+
+  // Create a new branch in a registered repository.
+  rpc CreateBranch(CreateBranchRequest) returns (BranchInfo);
+
+  // Delete a branch from a registered repository.
+  rpc DeleteBranch(DeleteBranchRequest) returns (DeleteBranchResponse);
+
+  // Get details about a specific branch.
+  rpc GetBranch(GetBranchRequest) returns (BranchInfo);
 }
 
 // =============================================================================
@@ -124,4 +136,48 @@ message GitRepoDetail {
   uint32 worktree_count = 9;
   google.protobuf.Timestamp created_at = 10;
   google.protobuf.Timestamp last_active = 11;
+}
+
+// =============================================================================
+// Branch management
+// =============================================================================
+
+message BranchInfo {
+  string name = 1;
+  bool is_head = 2;
+  string commit_sha = 3;
+  string commit_message = 4;
+  bool has_worktree = 5;
+  bool is_remote = 6;
+}
+
+message ListBranchesRequest {
+  string repo_id = 1;
+  bool include_remote = 2;
+}
+
+message ListBranchesResponse {
+  repeated BranchInfo branches = 1;
+}
+
+message CreateBranchRequest {
+  string repo_id = 1;
+  string name = 2;
+  // Base ref (branch, tag, or commit SHA). Empty = HEAD.
+  string start_point = 3;
+}
+
+message DeleteBranchRequest {
+  string repo_id = 1;
+  string name = 2;
+  bool force = 3;
+}
+
+message DeleteBranchResponse {
+  bool deleted = 1;
+}
+
+message GetBranchRequest {
+  string repo_id = 1;
+  string name = 2;
 }
